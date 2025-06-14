@@ -52,6 +52,12 @@ def get_current_weather(city: str) -> str:
         return f"Error fetching weather data: {str(e)}"
 
 
+@mcp.tool()
+def get_current_time() -> str:
+    """Get current time"""
+    logger.info("Tool called: get_current_time()")
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 if __name__ == "__main__":
     logger.info(f"Starting MCP Server on port {port}...")
     try:
