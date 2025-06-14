@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import sys
+from datetime import datetime
 
 import requests
 from mcp.server.fastmcp import FastMCP
