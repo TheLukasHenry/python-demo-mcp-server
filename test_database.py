@@ -109,7 +109,7 @@ def show_usage_instructions():
     print("=" * 40)
 
     print("New tools added to your MCP server:")
-    print("1. add_coding_language(language_name, is_static=False, creator='system')")
+    print("1. add_coding_language(name, is_static=False, creator='system')")
     print("2. list_coding_languages()")
 
     print("\n📝 Example usage in Cursor:")

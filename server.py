@@ -90,17 +90,18 @@ def get_current_time() -> str:
 
 
 @mcp.tool()
-def add_coding_language(is_static: bool = False, creator: str = "system") -> str:
-    """Add a new coding language entry to the database
+def add_coding_language(name: str, is_static: bool = False, creator: str = "system") -> str:
+    """Add a new coding language to the database
 
     Args:
+        name: Name of the programming language (e.g., 'Python', 'JavaScript')
         is_static: Whether the language is statically typed (default: False)
         creator: Creator/author of the language entry (default: 'system')
 
     Returns:
         Success message with the created language ID
     """
-    logger.info(f"Tool called: add_coding_language({is_static}, {creator})")
+    logger.info(f"Tool called: add_coding_language({name}, {is_static}, {creator})")
 
     if not DB_PASSWORD:
         return "Error: Database password not configured. Please set DB_PASSWORD environment variable."
@@ -109,14 +110,14 @@ def add_coding_language(is_static: bool = False, creator: str = "system") -> str
         conn = get_db_connection()
         cursor = conn.cursor()
 
-                # Insert new coding language
+                        # Insert new coding language
         insert_query = """
-            INSERT INTO "codingLanguage" ("isStatic", creator)
-            VALUES (%s, %s)
+            INSERT INTO "codingLanguage" (name, "isStatic", creator)
+            VALUES (%s, %s, %s)
             RETURNING id;
         """
 
-        cursor.execute(insert_query, (is_static, creator))
+        cursor.execute(insert_query, (name, is_static, creator))
         result = cursor.fetchone()
         language_id = result['id']
 
@@ -124,8 +125,8 @@ def add_coding_language(is_static: bool = False, creator: str = "system") -> str
         cursor.close()
         conn.close()
 
-        logger.info(f"Successfully added coding language entry with ID: {language_id}")
-        return f"Successfully added coding language entry with ID: {language_id} (isStatic: {is_static}, creator: {creator})"
+        logger.info(f"Successfully added coding language: {name} with ID: {language_id}")
+        return f"Successfully added coding language '{name}' with ID: {language_id} (isStatic: {is_static}, creator: {creator})"
 
     except psycopg2.Error as e:
         logger.error(f"Database error while adding coding language: {str(e)}")
@@ -153,7 +154,7 @@ def list_coding_languages() -> str:
 
         # Get all coding languages
         select_query = """
-            SELECT id, "isStatic", creator
+            SELECT id, name, "isStatic", creator
             FROM "codingLanguage"
             ORDER BY id;
         """
@@ -168,11 +169,11 @@ def list_coding_languages() -> str:
             return "No coding languages found in the database."
 
         # Format the results
-        result = "Coding Language Entries:\n"
+        result = "Coding Languages:\n"
         result += "-" * 50 + "\n"
         for lang in languages:
             static_type = "Static" if lang['isStatic'] else "Dynamic"
-            result += f"ID: {lang['id']} | Type: {static_type} | Creator: {lang['creator']}\n"
+            result += f"ID: {lang['id']} | {lang['name']} | Type: {static_type} | Creator: {lang['creator']}\n"
 
         logger.info(f"Retrieved {len(languages)} coding languages")
         return result
