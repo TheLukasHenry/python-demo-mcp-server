@@ -27,26 +27,33 @@ logger = logging.getLogger(name)
 port = int(os.environ.get('PORT', 8080))
 
 # Database configuration - Using external connection
+# Updated to match Sevalla's environment variable names
 DB_HOST = os.environ.get('DB_HOST', 'northamerica-northeast1-001.proxy.kinsta.app')
 DB_PORT = os.environ.get('DB_PORT', '30888')
-DB_NAME = os.environ.get('DB_NAME', 'spiritual-orange-blackbird')
-DB_USER = os.environ.get('DB_USER', 'marmoset')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '')  # Will be provided by user
+DB_NAME = os.environ.get('DB_DATABASE', os.environ.get('DB_NAME', 'spiritual-orange-blackbird'))  # Sevalla uses DB_DATABASE
+DB_USER = os.environ.get('DB_USERNAME', os.environ.get('DB_USER', 'marmoset'))  # Sevalla uses DB_USERNAME
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '')  # Same in both
 
 def get_db_connection():
     """Get database connection"""
     try:
+        # Log connection attempt (without password for security)
+        logger.info(f"Attempting database connection to {DB_HOST}:{DB_PORT}/{DB_NAME} as {DB_USER}")
+
         conn = psycopg2.connect(
             host=DB_HOST,
             port=DB_PORT,
             database=DB_NAME,
             user=DB_USER,
             password=DB_PASSWORD,
-            cursor_factory=RealDictCursor
+            cursor_factory=RealDictCursor,
+            connect_timeout=10  # Add connection timeout
         )
+        logger.info("Database connection successful")
         return conn
     except psycopg2.Error as e:
         logger.error(f"Database connection error: {str(e)}")
+        logger.error(f"Connection details - Host: {DB_HOST}, Port: {DB_PORT}, Database: {DB_NAME}, User: {DB_USER}")
         raise
 
 # Create server with lifespan
@@ -87,6 +94,46 @@ def get_current_time() -> str:
     """Get current time"""
     logger.info("Tool called: get_current_time()")
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+@mcp.tool()
+def test_database_connection() -> str:
+    """Test database connection and return status info"""
+    logger.info("Tool called: test_database_connection()")
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Test basic connectivity
+        cursor.execute('SELECT version();')
+        version_result = cursor.fetchone()
+
+        # Test if our table exists
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_name = 'codingLanguage'
+            );
+        """)
+        table_exists = cursor.fetchone()['exists']
+
+        cursor.close()
+        conn.close()
+
+        result = f"✅ Database Connection: SUCCESS\n"
+        result += f"📝 PostgreSQL Version: {version_result['version']}\n"
+        result += f"📋 codingLanguage table: {'EXISTS' if table_exists else 'MISSING'}\n"
+        result += f"🔗 Connected as: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+        return result
+
+    except Exception as e:
+        error_msg = f"❌ Database Connection: FAILED\n"
+        error_msg += f"🔗 Attempted: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}\n"
+        error_msg += f"❌ Error: {str(e)}"
+        logger.error(f"Database connection test failed: {str(e)}")
+        return error_msg
 
 
 @mcp.tool()
