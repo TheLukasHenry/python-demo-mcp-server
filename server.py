@@ -233,9 +233,16 @@ def list_coding_languages() -> str:
         return f"Unexpected error: {str(e)}"
 
 if __name__ == "__main__":
-    logger.info(f"Starting MCP Server on port {port}...")
+    # Determine transport based on environment
+    # If running in a web environment (PORT set), use SSE
+    # If running locally/CLI, use stdio
     try:
-        mcp.run(transport="sse")
+        if os.environ.get('PORT'):
+            logger.info(f"Starting MCP Server with SSE transport on port {port}...")
+            mcp.run(transport="sse")
+        else:
+            logger.info("Starting MCP Server with stdio transport...")
+            mcp.run(transport="stdio")
     except Exception as e:
         logger.error(f"Server error: {str(e)}")
         sys.exit(1)
